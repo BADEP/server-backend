@@ -271,11 +271,13 @@ class TestBaseExternalDbsource(common.TransactionCase):
         def _connection_open_ok(self):
             yield mock.Mock()
 
-        with mock.patch.object(
-            type(self.dbsource), "connection_open", _connection_open_ok
+        with (
+            mock.patch.object(
+                type(self.dbsource), "connection_open", _connection_open_ok
+            ),
+            self.assertRaises(ValidationError) as ctx,
         ):
-            with self.assertRaises(ValidationError) as ctx:
-                self.dbsource.connection_test()
+            self.dbsource.connection_test()
         self.assertIn("Connection test succeeded", str(ctx.exception))
 
     def test_connection_test_failure(self):
@@ -285,11 +287,13 @@ class TestBaseExternalDbsource(common.TransactionCase):
         def _connection_open_fail(self):
             raise ConnectionError("connection refused")
 
-        with mock.patch.object(
-            type(self.dbsource), "connection_open", _connection_open_fail
+        with (
+            mock.patch.object(
+                type(self.dbsource), "connection_open", _connection_open_fail
+            ),
+            self.assertRaises(ValidationError) as ctx,
         ):
-            with self.assertRaises(ValidationError) as ctx:
-                self.dbsource.connection_test()
+            self.dbsource.connection_test()
         self.assertIn("Connection test failed", str(ctx.exception))
         self.assertIn("connection refused", str(ctx.exception))
 
