@@ -1,17 +1,19 @@
 # Copyright 2014 ABF OSIELL <http://osiell.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
-import datetime
+import ast
 import logging
+import typing
 
 from odoo import api, fields, models
 from odoo.api import SUPERUSER_ID
+from odoo.fields import Domain
 
 _logger = logging.getLogger(__name__)
 
 
 class ResUsersRole(models.Model):
     _name = "res.users.role"
-    _inherits = {"res.groups": "group_id"}
+    _inherits: typing.ClassVar[dict[str, str]] = {"res.groups": "group_id"}
     _description = "User Role"
     _order = "sequence,name"
 
@@ -32,15 +34,19 @@ class ResUsersRole(models.Model):
         compute="_compute_role_user_ids",
         search="_search_role_user_ids",
     )
+    # Odoo 20 merged ir.model.access and ir.rule into ir.access: the
+    # accesses of the implied groups without a domain play the role of the
+    # former access rights, those with a domain the one of the former
+    # (group) record rules.
     rule_ids = fields.Many2many(
-        comodel_name="ir.rule",
+        comodel_name="ir.access",
         compute="_compute_rule_ids",
         string="Record Rules",
         required=False,
     )
     rules_count = fields.Integer(compute="_compute_rule_ids")
     model_access_ids = fields.Many2many(
-        comodel_name="ir.model.access",
+        comodel_name="ir.access",
         compute="_compute_model_access_ids",
         string="Access Rights",
         required=False,
@@ -65,16 +71,34 @@ class ResUsersRole(models.Model):
     def _search_role_user_ids(self, operator, value):
         return [("line_ids.user_id", operator, value)]
 
-    @api.depends("implied_ids", "implied_ids.model_access")
+    @api.model
+    def _is_access_unrestricted(self, access):
+        """Return whether the ir.access applies to all records of its model
+        (former ir.model.access) rather than to a domain (former ir.rule).
+        Same evaluation as ``ir.access._get_all_access()``."""
+        domain = (access.domain or "").strip()
+        if not domain:
+            return True
+        try:
+            return Domain(ast.literal_eval(domain)).is_true()
+        except ValueError:
+            # domain depends on the evaluation context (user, company_ids...)
+            return False
+
+    @api.depends("implied_ids", "implied_ids.access_ids.domain")
     def _compute_model_access_ids(self):
         for rec in self:
-            rec.model_access_ids = rec.implied_ids.model_access.ids
+            rec.model_access_ids = rec.implied_ids.access_ids.filtered(
+                self._is_access_unrestricted
+            )
             rec.model_access_count = len(rec.model_access_ids)
 
-    @api.depends("implied_ids", "implied_ids.rule_groups")
+    @api.depends("implied_ids", "implied_ids.access_ids.domain")
     def _compute_rule_ids(self):
         for rec in self:
-            rec.rule_ids = rec.implied_ids.rule_groups.ids
+            rec.rule_ids = rec.implied_ids.access_ids.filtered(
+                lambda access: not self._is_access_unrestricted(access)
+            )
             rec.rules_count = len(rec.rule_ids)
 
     @api.model
@@ -128,7 +152,7 @@ class ResUsersRole(models.Model):
 
     @api.model
     def cron_update_users(self):
-        logging.info("Update user roles")
+        _logger.info("Update user roles")
         offset = 0
         batch = 2000
         while True:
@@ -139,12 +163,13 @@ class ResUsersRole(models.Model):
             offset += batch
 
     def show_rule_ids(self):
-        action = self.env["ir.actions.actions"]._for_xml_id("base.action_rule")
+        action = self.env["ir.actions.actions"]._for_xml_id("base.ir_access_action")
+        action["name"] = self.env._("Record Rules")
         action["domain"] = [("id", "in", self.rule_ids.ids)]
         return action
 
     def show_model_access_ids(self):
-        action = self.env["ir.actions.actions"]._for_xml_id("base.ir_access_act")
+        action = self.env["ir.actions.actions"]._for_xml_id("base.ir_access_action")
         action["domain"] = [("id", "in", self.model_access_ids.ids)]
         return action
 
@@ -160,12 +185,11 @@ class ResUsersRoleLine(models.Model):
     name = fields.Char(related="role_id.name")
     active = fields.Boolean(related="user_id.active")
     role_id = fields.Many2one(
-        comodel_name="res.users.role", required=True, string="Role", ondelete="cascade"
+        comodel_name="res.users.role", required=True, ondelete="cascade"
     )
     user_id = fields.Many2one(
         comodel_name="res.users",
         required=True,
-        string="User",
         domain=[("id", "!=", SUPERUSER_ID)],
         ondelete="cascade",
     )
@@ -179,7 +203,7 @@ class ResUsersRoleLine(models.Model):
 
     @api.depends("date_from", "date_to")
     def _compute_is_enabled(self):
-        today = datetime.date.today()
+        today = fields.Date.today()
         for role_line in self:
             role_line.is_enabled = True
             if role_line.date_from:

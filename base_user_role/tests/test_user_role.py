@@ -88,6 +88,8 @@ class TestUserRoleCommon(BaseCommon):
 
 
 class TestUserRole(TestUserRoleCommon):
+    _test_user_groups = None
+
     def test_role_1(self):
         self.user_id.write(
             {"role_line_ids": [fields.Command.create({"role_id": self.role1_id.id})]}
@@ -281,7 +283,10 @@ class TestUserRole(TestUserRoleCommon):
         role_id = result["res_id"]
         role = self.role_model.browse([role_id])
         user_group_ids = sorted(set(self.user_id.group_ids.ids))
-        role_group_ids = sorted(set(role.implied_ids.ids))
+        # Odoo 20 makes every non-light group (thus the role's group) imply
+        # base.group_user_regular automatically
+        group_regular = self.env.ref("base.group_user_regular")
+        role_group_ids = sorted(set((role.implied_ids - group_regular).ids))
         self.assertEqual(user_group_ids, role_group_ids)
 
     def test_show_alert_computation(self):
@@ -308,7 +313,12 @@ class TestUserRole(TestUserRoleCommon):
         new_role = self.env[res["res_model"]].browse(res["res_id"])
         self.assertEqual(new_role.name, "Test Role")
         # Check that the role has the correct groups (even if the order is not equal)
-        self.assertEqual(set(new_role.implied_ids.ids), set(user_group_ids))
+        # (Odoo 20 adds base.group_user_regular to non-light groups automatically)
+        group_regular = self.env.ref("base.group_user_regular")
+        self.assertEqual(
+            set((new_role.implied_ids - group_regular).ids),
+            set(user_group_ids) - set(group_regular.ids),
+        )
 
 
 @tagged("post_install", "-at_install")
