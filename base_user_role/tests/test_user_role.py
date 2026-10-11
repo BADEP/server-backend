@@ -289,6 +289,26 @@ class TestUserRole(TestUserRoleCommon):
         role_group_ids = sorted(set((role.implied_ids - group_regular).ids))
         self.assertEqual(user_group_ids, role_group_ids)
 
+    def test_role_access_and_rules(self):
+        """Odoo 20: access rights and record rules of a role are the
+        ir.access records of its groups, without and with a domain."""
+        role = self.role1_id
+        accesses = role.implied_ids.access_ids
+        self.assertTrue(accesses)
+        self.assertEqual(role.model_access_ids | role.rule_ids, accesses)
+        self.assertFalse(role.model_access_ids & role.rule_ids)
+        self.assertEqual(role.model_access_count, len(role.model_access_ids))
+        self.assertEqual(role.rules_count, len(role.rule_ids))
+        self.assertTrue(role.rule_ids)
+        for access in role.rule_ids:
+            self.assertTrue(access.domain)
+        action = role.show_model_access_ids()
+        self.assertEqual(action["res_model"], "ir.access")
+        self.assertEqual(action["domain"], [("id", "in", role.model_access_ids.ids)])
+        action = role.show_rule_ids()
+        self.assertEqual(action["res_model"], "ir.access")
+        self.assertEqual(action["domain"], [("id", "in", role.rule_ids.ids)])
+
     def test_show_alert_computation(self):
         """Test the computation of the `show_alert` field."""
         self.user_id.write(
