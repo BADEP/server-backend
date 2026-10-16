@@ -1,0 +1,2 @@
+id,name,model_id,group_id/id,operation,domain
+base_user_role_line_history_access_name,base.user.role.line.history access user,base.user.role.line.history,base.group_user,r,
