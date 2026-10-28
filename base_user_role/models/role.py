@@ -2,7 +2,6 @@
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 import ast
 import logging
-import typing
 
 from odoo import api, fields, models
 from odoo.api import SUPERUSER_ID
@@ -13,7 +12,7 @@ _logger = logging.getLogger(__name__)
 
 class ResUsersRole(models.Model):
     _name = "res.users.role"
-    _inherits: typing.ClassVar[dict[str, str]] = {"res.groups": "group_id"}
+    _inherits = {"res.groups": "group_id"}  # noqa: RUF012
     _description = "User Role"
     _order = "sequence,name"
 
