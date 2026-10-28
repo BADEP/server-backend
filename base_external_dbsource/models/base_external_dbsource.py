@@ -34,7 +34,7 @@ class BaseExternalDbsource(models.Model):
     _name = "base.external.dbsource"
     _description = "External Database Sources"
 
-    CONNECTORS = [("postgresql", "PostgreSQL")]
+    CONNECTORS = [("postgresql", "PostgreSQL")]  # noqa: RUF012
     # This is appended to the conn string if pass declared but not detected.
     # Children should declare PWD_STRING_CONNECTOR (such as PWD_STRING_FBD)
     #   to allow for override.
@@ -59,7 +59,6 @@ class BaseExternalDbsource(models.Model):
     )
     company_id = fields.Many2one(
         comodel_name="res.company",
-        string="Company",
         default=lambda self: self.env.user.company_id,
     )
     conn_string_full = fields.Text(readonly=True, compute="_compute_conn_string_full")
@@ -73,7 +72,7 @@ class BaseExternalDbsource(models.Model):
         help="If a connector is missing from the list, check the server "
         "log to confirm that the required components were detected.",
     )
-    _current_table_by_id = {}
+    _current_table_by_id = {}  # noqa: RUF012
 
     def change_table(self, name):
         """Change the table that is used for CRUD operations"""
@@ -169,8 +168,7 @@ class BaseExternalDbsource(models.Model):
 
         if metadata:
             return {"cols": cols, "rows": rows}
-        else:
-            return rows
+        return rows
 
     def connection_test(self):
         """It tests the connection

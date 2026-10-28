@@ -81,7 +81,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         """It should call the adapter methods with proper args"""
         expect = ("query", "execute", "metadata")
         return_value = "rows", "cols"
-        res, adapter = self._test_adapter_method(
+        _res, adapter = self._test_adapter_method(
             "execute", args=expect, return_value=return_value
         )
         adapter.assert_called_once_with(*expect)
@@ -90,7 +90,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         """It should return rows if not metadata"""
         expect = (True, True, False)
         return_value = "rows", "cols"
-        res, adapter = self._test_adapter_method(
+        res, _adapter = self._test_adapter_method(
             "execute", args=expect, return_value=return_value
         )
         self.assertEqual(res, return_value[0])
@@ -99,7 +99,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         """It should return rows and cols if metadata"""
         expect = (True, True, True)
         return_value = "rows", "cols"
-        res, adapter = self._test_adapter_method(
+        res, _adapter = self._test_adapter_method(
             "execute", args=expect, return_value=return_value
         )
         self.assertEqual(res, {"rows": return_value[0], "cols": return_value[1]})
@@ -121,7 +121,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         kwargs = {"kwargs": True}
         self.dbsource._current_table_by_id.pop(self.dbsource.id, None)
         with self.assertRaises(AssertionError):
-            res, adapter = self._test_adapter_method(
+            _res, _adapter = self._test_adapter_method(
                 "remote_browse", create=True, args=args, kwargs=kwargs
             )
 
@@ -142,7 +142,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         kwargs = {"kwargs": True}
         self.dbsource._current_table_by_id.pop(self.dbsource.id, None)
         with self.assertRaises(AssertionError):
-            res, adapter = self._test_adapter_method(
+            _res, _adapter = self._test_adapter_method(
                 "remote_create", create=True, args=args, kwargs=kwargs
             )
 
@@ -163,7 +163,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         kwargs = {"kwargs": True}
         self.dbsource._current_table_by_id.pop(self.dbsource.id, None)
         with self.assertRaises(AssertionError):
-            res, adapter = self._test_adapter_method(
+            _res, _adapter = self._test_adapter_method(
                 "remote_delete", create=True, args=args, kwargs=kwargs
             )
 
@@ -184,7 +184,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         kwargs = {"kwargs": True}
         self.dbsource._current_table_by_id.pop(self.dbsource.id, None)
         with self.assertRaises(AssertionError):
-            res, adapter = self._test_adapter_method(
+            _res, _adapter = self._test_adapter_method(
                 "remote_search", create=True, args=args, kwargs=kwargs
             )
 
@@ -205,7 +205,7 @@ class TestBaseExternalDbsource(common.TransactionCase):
         kwargs = {"kwargs": True}
         self.dbsource._current_table_by_id.pop(self.dbsource.id, None)
         with self.assertRaises(AssertionError):
-            res, adapter = self._test_adapter_method(
+            _res, _adapter = self._test_adapter_method(
                 "remote_update", create=True, args=args, kwargs=kwargs
             )
 
