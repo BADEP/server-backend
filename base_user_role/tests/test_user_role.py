@@ -88,6 +88,8 @@ class TestUserRoleCommon(BaseCommon):
 
 
 class TestUserRole(TestUserRoleCommon):
+    _test_user_groups = None
+
     def test_role_1(self):
         self.user_id.write(
             {"role_line_ids": [fields.Command.create({"role_id": self.role1_id.id})]}
@@ -281,8 +283,31 @@ class TestUserRole(TestUserRoleCommon):
         role_id = result["res_id"]
         role = self.role_model.browse([role_id])
         user_group_ids = sorted(set(self.user_id.group_ids.ids))
-        role_group_ids = sorted(set(role.implied_ids.ids))
+        # Odoo 20 makes every non-light group (thus the role's group) imply
+        # base.group_user_regular automatically
+        group_regular = self.env.ref("base.group_user_regular")
+        role_group_ids = sorted(set((role.implied_ids - group_regular).ids))
         self.assertEqual(user_group_ids, role_group_ids)
+
+    def test_role_access_and_rules(self):
+        """Odoo 20: access rights and record rules of a role are the
+        ir.access records of its groups, without and with a domain."""
+        role = self.role1_id
+        accesses = role.implied_ids.access_ids
+        self.assertTrue(accesses)
+        self.assertEqual(role.model_access_ids | role.rule_ids, accesses)
+        self.assertFalse(role.model_access_ids & role.rule_ids)
+        self.assertEqual(role.model_access_count, len(role.model_access_ids))
+        self.assertEqual(role.rules_count, len(role.rule_ids))
+        self.assertTrue(role.rule_ids)
+        for access in role.rule_ids:
+            self.assertTrue(access.domain)
+        action = role.show_model_access_ids()
+        self.assertEqual(action["res_model"], "ir.access")
+        self.assertEqual(action["domain"], [("id", "in", role.model_access_ids.ids)])
+        action = role.show_rule_ids()
+        self.assertEqual(action["res_model"], "ir.access")
+        self.assertEqual(action["domain"], [("id", "in", role.rule_ids.ids)])
 
     def test_show_alert_computation(self):
         """Test the computation of the `show_alert` field."""
@@ -308,7 +333,12 @@ class TestUserRole(TestUserRoleCommon):
         new_role = self.env[res["res_model"]].browse(res["res_id"])
         self.assertEqual(new_role.name, "Test Role")
         # Check that the role has the correct groups (even if the order is not equal)
-        self.assertEqual(set(new_role.implied_ids.ids), set(user_group_ids))
+        # (Odoo 20 adds base.group_user_regular to non-light groups automatically)
+        group_regular = self.env.ref("base.group_user_regular")
+        self.assertEqual(
+            set((new_role.implied_ids - group_regular).ids),
+            set(user_group_ids) - set(group_regular.ids),
+        )
 
 
 @tagged("post_install", "-at_install")

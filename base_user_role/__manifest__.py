@@ -4,7 +4,7 @@
 
 {
     "name": "User roles",
-    "version": "19.0.1.3.1",
+    "version": "20.0.1.0.0",
     "category": "Tools",
     "author": "ABF OSIELL, Odoo Community Association (OCA)",
     "license": "LGPL-3",
@@ -13,7 +13,6 @@
     "website": "https://github.com/OCA/server-backend",
     "depends": ["base"],
     "data": [
-        "security/ir.model.access.csv",
         "data/ir_cron.xml",
         "data/ir_module_category.xml",
         "wizards/role_add_users_wizard_views.xml",
@@ -22,6 +21,7 @@
         "views/group.xml",
         "wizards/create_from_user.xml",
         "wizards/wizard_groups_into_role.xml",
+        "security/ir.access.csv",
     ],
     "installable": True,
 }
