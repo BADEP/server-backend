@@ -3,7 +3,6 @@
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl.html).
 
 import logging
-import typing
 from contextlib import contextmanager
 
 import psycopg2
@@ -35,7 +34,7 @@ class BaseExternalDbsource(models.Model):
     _name = "base.external.dbsource"
     _description = "External Database Sources"
 
-    CONNECTORS: typing.ClassVar[list[tuple[str, str]]] = [("postgresql", "PostgreSQL")]
+    CONNECTORS = [("postgresql", "PostgreSQL")]  # noqa: RUF012
     # This is appended to the conn string if pass declared but not detected.
     # Children should declare PWD_STRING_CONNECTOR (such as PWD_STRING_FBD)
     #   to allow for override.
@@ -73,7 +72,7 @@ class BaseExternalDbsource(models.Model):
         help="If a connector is missing from the list, check the server "
         "log to confirm that the required components were detected.",
     )
-    _current_table_by_id: typing.ClassVar[dict[int, str]] = {}
+    _current_table_by_id = {}  # noqa: RUF012
 
     def change_table(self, name):
         """Change the table that is used for CRUD operations"""
